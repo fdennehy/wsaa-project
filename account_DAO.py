@@ -1,23 +1,25 @@
-# account dao 
-# This is a demonstration a data layer that connects to a datbase
+# Data Layer containing functions that interact with a mysql databased
 
+# Import required modules, including python anywhere database config details
 import mysql.connector
 import dbconfigpa as cfg
 
 class accountDAO:
-    connection=""
-    cursor =''
-    host=       ''
-    user=       ''
-    password=   ''
-    database=   ''
+    connection =    ''
+    cursor =        ''
+    host =          ''
+    user =          ''
+    password =      ''
+    database =      ''
     
+    # Function to initiate and assign config values
     def __init__(self):
-        self.host=       cfg.mysql['host']
-        self.user=       cfg.mysql['user']
-        self.password=   cfg.mysql['password']
-        self.database=   cfg.mysql['database']
+        self.host =      cfg.mysql['host']
+        self.user =      cfg.mysql['user']
+        self.password =  cfg.mysql['password']
+        self.database =  cfg.mysql['database']
 
+    # Function to assign connection and cursor
     def getcursor(self): 
         self.connection = mysql.connector.connect(
             host=       self.host,
@@ -28,71 +30,136 @@ class accountDAO:
         self.cursor = self.connection.cursor()
         return self.cursor
 
+    # Function for closing cursor and database connection, which will be run after each SQL database function
     def closeAll(self):
         self.cursor.close()
         self.connection.close()
-        
+    
+    # Function to return an array of all account info
     def getAllAccounts(self):
-        cursor = self.getcursor()
-        sql="select * from account"
-        cursor.execute(sql)
-        results = cursor.fetchall()
-        returnArray = []
-        #print(results)
-        for result in results:
-            #print(result)
-            returnArray.append(self.convertAccountToDictionary(result))
-        
-        self.closeAll()
-        return returnArray
+        try:
+            cursor = self.getcursor()
+            sql="SELECT * FROM account"
+            cursor.execute(sql)
+            results = cursor.fetchall()
+            returnArray = [self.convertAccountToDictionary(result) for result in results]
+            return returnArray
+        except mysql.connector.Error as err:
+            print(f"DB Error in getAllAccounts: {err}")
+            return None
+        finally:
+            self.closeAll()
 
+    # Function to return specific account info as a dictionary, provided account id  
     def findAccountByID(self, id):
-        cursor = self.getcursor()
-        sql="select * from account where account_id = %s"
-        values = (id,)
+        try:
+            cursor = self.getcursor()
+            sql="SELECT * FROM account where id = %s"
+            cursor.execute(sql, (id,))
+            result = cursor.fetchone()
+            return self.convertAccountToDictionary(result) if result else None
+        except mysql.connector.Error as err:
+            print(f"DB Error in findAccountByID: {err}")
+            return None
+        finally:
+            self.closeAll()
 
-        cursor.execute(sql, values)
-        result = cursor.fetchone()
-        returnvalue = self.convertAccountToDictionary(result)
-        self.closeAll()
-        return returnvalue
-
+    # Function to create a new account, returing account details
     def createAccount(self, account):
-        cursor = self.getcursor()
-        sql="insert into account (account_name,website) values (%s,%s)"
-        values = (account.get("account_name"), account.get("website"))
-        cursor.execute(sql, values)
+        try:
+            cursor = self.getcursor()
+            sql="INSERT INTO account (name, website, revenue, region) VALUES (%s,%s,%s,%s)"
+            values = (
+                account.get("name"), 
+                account.get("website"), 
+                account.get("revenue"), 
+                account.get("region")
+            )
+            cursor.execute(sql, values)
+            self.connection.commit()
+            # assign account id
+            account["id"] = cursor.lastrowid
+            return account
+        except mysql.connector.Error as err:
+            print(f"DB Error in createAccount: {err}")
+            return None
+        finally:
+            self.closeAll()
 
-        self.connection.commit()
-        newid = cursor.lastrowid
-        account["account_id"] = newid
-        self.closeAll()
-        return account
-
-
+    # Function to update an existing account, provided account id
     def updateAccount(self, id, account):
-        cursor = self.getcursor()
-        sql="update account set account_name= %s,website=%s WHERE account_id = %s"
-        values = (account.get("account_name"), account.get("website"), id)
-        cursor.execute(sql, values)
-        self.connection.commit()
-        self.closeAll()
-        return account
-        
+        try:
+            cursor = self.getcursor()
+            sql="update account set name= %s,website=%s, revenue=%s, region=%s WHERE id = %s"
+            values = (
+                account.get("name"), 
+                account.get("website"), 
+                account.get("revenue"), 
+                account.get("region"), 
+                id
+            )
+            cursor.execute(sql, values)
+            self.connection.commit()
+            return account
+        except mysql.connector.Error as err:
+            print(f"DB Error in updateAccount: {err}")
+            return None
+        finally:
+            self.closeAll()
+
+    # Function to delete an existing account, provided account id    
     def deleteAccount(self, id):
-        cursor = self.getcursor()
-        sql="delete from account where account_id = %s"
-        values = (id,)
-
-        cursor.execute(sql, values)
-
-        self.connection.commit()
-        self.closeAll()
+        try:
+            cursor = self.getcursor()
+            sql="delete from account where id = %s"
+            cursor.execute(sql, (id,))
+            self.connection.commit()
+            return{"status": "deleted", "id": id}
+        except mysql.connector.Error as err:
+            print(f"DB Error in deleteAccount: {err}")
+            return None
+        finally:
+            self.closeAll()
         
-        #print("delete done")
+    # Function to delete all data from account table with nothing returned.
+    # *Warning to be added on front end re use of this 'WIPE' function*
+    def deleteAllAccounts(self):
+        try:
+            cursor = self.getcursor()
+            sql="DELETE FROM account"
+            cursor.execute(sql)
+            self.connection.commit()
+            return{"status": "all records deleted"}
+        except mysql.connector.Error as err:
+            print(f"DB Error in deleteAllAccounts: {err}")
+            return None
+        finally:
+            self.closeAll()
 
+    # Function to hydrate database with dummy data.
+    def dummyDataInsert(self):
+        try:
+            cursor = self.getcursor()
+            sql = """
+            INSERT INTO account (name, website, revenue, region) VALUES 
+            ('Acme Corporation', 'https://www.acme.com', '1000', 'Asia'), 
+            ('Globex Industries', 'https://www.globex.com', '200', 'South America'), 
+            ('Initech', 'https://www.initech.com', '500', 'Europe'),
+            ('Stark Enterprises', 'https://www.starkenterprises.com', '750', 'North America'),
+            ('Wayne Enterprises', 'https://www.wayneenterprises.com', '750', 'Australia')
+            """
+            cursor.execute(sql)
+            self.connection.commit()
+            return{"status": "dummy data inserted"}
+        except mysql.connector.Error as err:
+            print(f"DB Error in dummyDataInsert: {err}")
+            return None
+        finally:
+            self.closeAll()
+
+    # Function to convert account details to a dictionary object, making JSON responses clean
     def convertAccountToDictionary(self, resultLine):
-        attkeys=['account_id','account_name','website']
+        attkeys=['id','name','website', 'revenue', 'region']
         account = {}
         currentkey = 0
         for attrib in resultLine:
