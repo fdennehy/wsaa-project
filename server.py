@@ -65,16 +65,14 @@ def update(id):
     if 'website' in reqJson:
         found_account['website'] = reqJson['website']
 
-    accountDAOInstance.update(id,found_account)
+    accountDAOInstance.updateAccount(id,found_account)
     return jsonify(found_account)
         
-
-    
 # Delete an account by id
 @app.route('/accounts/<int:id>' , methods=['DELETE'])
 @cross_origin()
 def deleteAccount(id):
-    accountDAOInstance.delete(id)
+    accountDAOInstance.deleteAccount(id)
     return jsonify({"done":True})
 
 if __name__ == '__main__' :
