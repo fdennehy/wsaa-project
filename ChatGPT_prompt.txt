@@ -1,0 +1,24 @@
+ChatGPT was responsioble for the majority of the dashboard.html file.
+Prompt provided to ChatGPT after the DAO and Server files were created:
+-----------------------------------------------------------------------
+
+I am a backend developer and have created a mySQL database with two tables containing account and contact information, joined on account id. 
+I have created x2 DAO files to perform operations on the database. I have also created a flask server file with routes. 
+Lastly, I have a template html file which contains a combination of html, javascript and ajax. I will share these files with you one at a time.
+
+You are a front end developer. Your assignment is to carefully review the files shared, and then provide a dashboards.html file. Your first iteration should:
+- contain no more than 150 lines of code
+- use the template html file as a guide
+- contain account buttons to:
+1) View all Account data
+2) Add an Account by ID
+3) Update Account by ID
+4) Delete Account by ID
+5) View all Contacts data
+6) Create a (dummy) contact
+
+Are you ready to be sent the different files?
+Functionality 
+
+-----------------------------------------------------------------------
+This prompt lead to much code being exchanged to result in the final version.

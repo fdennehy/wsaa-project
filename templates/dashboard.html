@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Account Dashboard</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> 
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" />
+    <style>
+        /* Scrollable tables with max height */
+        #output-area table {
+            max-height: 400px;
+            overflow-y: auto;
+            display: block;
+        }
+        .btn-group-vertical.w-100 > button {
+            width: 100%;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3 bg-light p-3">
+            <h4>Account Viewer</h4>
+            <div class="btn-group-vertical w-100" role="group">
+                <button class="btn btn-primary" onclick="viewAllAccounts()">View All Accounts</button>
+                <button class="btn btn-secondary" onclick="showFindById()">Find Account by ID</button>
+                <button class="btn btn-success" onclick="showCreateAccount()">Create Account</button>
+                <button class="btn btn-info" onclick="showUpdateById()">Update Account by ID</button>
+                <button class="btn btn-danger" onclick="showDeleteById()">Delete Account by ID</button>
+            </div>
+
+            <hr />
+
+            <h4>Contact Viewer</h4>
+            <div class="btn-group-vertical w-100" role="group">
+                <button class="btn btn-primary" onclick="viewAllContacts()">View All Contacts</button>
+                <button class="btn btn-secondary" onclick="showFindContactById()">Find Contact by ID</button>
+                <button class="btn btn-success" onclick="showCreateContact()">Create Contact</button>
+                <button class="btn btn-warning" onclick="showCreateDummyContacts()">Create Dummy Contact(s)</button>
+                <button class="btn btn-info" onclick="showUpdateContactById()">Update Contact by ID</button>
+                <button class="btn btn-danger" onclick="showDeleteContactById()">Delete Contact by ID</button>
+            </div>
+        </div>
+
+        <!-- Main Output Area -->
+        <div class="col-md-9 p-3" id="output-area">
+            <h4>Welcome! Select an option on the left.</h4>
+        </div>
+
+        <!-- Insights Area -->
+        <div class="col-md-3 p-3">
+            <h5>Average Health Score per Account</h5>
+            <canvas id="healthScoreChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<script>
+
+
+    // ##### FUNCTIONS TO VALIDATE DATA ENTRY #####
+
+
+    // Function to confirm positive number entered (for Revenue entry)
+    function isPositiveNumber(value) {
+    return !isNaN(value) && Number(value) > 0;
+    }
+    // Simple regex URL validation
+    function isValidURL(string) {
+    const pattern = /^(https?:\/\/)?([\w\-]+)+([\w\-\._~:/?#[\]@!$&'()*+,;=]+)?$/i;
+    return pattern.test(string);
+    }
+
+    // Validate email format
+    function isValidEmail(email) {
+    const pattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return pattern.test(email);
+    }
+
+    // validate Health Score is between 0 and 100
+    function isValidHealthScore(score) {
+    const num = Number(score);
+    return !isNaN(num) && num >= 0 && num <= 100;
+    }
+
+    // validate phone number
+    function isValidPhone(phone) {
+    const pattern = /^[\d\s()+-]+$/;
+    return pattern.test(phone);
+    }
+
+
+    // ##### ACCOUNT VIEWER FUNCTIONS #####
+
+
+    function viewAllAccounts() {
+        $.get("/accounts", function(data) {
+            if (!Array.isArray(data)) return $('#output-area').html('<p>Error retrieving accounts.</p>');
+            let html = '<h4>All Accounts</h4><table class="table table-striped table-bordered"><thead><tr><th>ID</th><th>Name</th><th>Website</th><th>Revenue</th><th>Region</th></tr></thead><tbody>';
+            data.forEach(acc => {
+                html += `<tr><td>${acc.id}</td><td>${acc.name || ''}</td><td>${acc.website || ''}</td><td>${acc.revenue || ''}</td><td>${acc.region || ''}</td></tr>`;
+            });
+            html += '</tbody></table>';
+            $('#output-area').html(html);
+        });
+    }
+
+    function showFindById() {
+        $('#output-area').html(`
+            <h4>Find Account by ID</h4>
+            <input id="find-id" type="number" class="form-control mb-2" placeholder="Enter Account ID" />
+            <button class="btn btn-secondary" onclick="findById()">Find</button>
+            <div id="result" class="mt-3"></div>
+        `);
+    }
+
+    function findById() {
+        const id = $('#find-id').val();
+        $.get(`/accounts/${id}`, function(acc) {
+            const html = `<table class="table table-bordered"><tr><th>ID</th><th>Name</th><th>Website</th><th>Revenue</th><th>Region</th></tr>
+                          <tr><td>${acc.id}</td><td>${acc.name}</td><td>${acc.website}</td><td>${acc.revenue}</td><td>${acc.region}</td></tr></table>`;
+            $('#result').html(html);
+        }).fail(() => $('#result').html('<div class="text-danger">Account not found.</div>'));
+    }
+
+    function showCreateAccount() {
+        $('#output-area').html(`
+            <h4>Create Account</h4>
+            <input id="create-name" type="text" class="form-control mb-2" placeholder="Name" />
+            <input id="create-website" type="text" class="form-control mb-2" placeholder="Website" />
+            <input id="create-revenue" type="text" class="form-control mb-2" placeholder="Revenue" />
+            <input id="create-region" type="text" class="form-control mb-2" placeholder="Region" />
+            <button class="btn btn-success" onclick="createAccount()">Create</button>
+            <div id="create-result" class="mt-3"></div>
+        `);
+    }
+
+    function createAccount() {
+        
+        // Get all input values and trim whitespace
+        const name = $('#create-name').val().trim();
+        const website = $('#create-website').val().trim();
+        const revenue = $('#create-revenue').val().trim();
+        const region = $('#create-region').val().trim();
+
+        // Check if any field is empty
+        if (!name || !website || !revenue || !region) {
+            $('#create-result').html('<div class="text-danger">Please fill in all fields before submitting.</div>');
+            return; // Stop execution if validation fails
+        }
+        
+        // Use regex url validation function
+        if (!isValidURL(website)) {
+        $('#create-result').html('<div class="text-danger">Please enter a valid website URL.</div>');
+        return;
+        }
+        
+        // confirm a positive number has been entered for Revenue
+        if (!isPositiveNumber(revenue)) {
+        $('#create-result').html('<div class="text-danger">Revenue must be a positive number.</div>');
+        return;
+        }
+
+        // Proceed if all fields are valid
+        const payload = {
+            name: $('#create-name').val(),
+            website: $('#create-website').val(),
+            revenue: $('#create-revenue').val(),
+            region: $('#create-region').val()
+        };
+        $.ajax({
+            url: '/accounts',
+            method: 'POST',
+            data: JSON.stringify(payload),
+            contentType: 'application/json',
+            success: res => {
+                $('#create-result').html(`<div class="text-success">Account created. ID: ${res.id}</div>`);
+                fetchHealthScoreChartData();
+            },
+            error: err => $('#create-result').html(`<div class="text-danger">Creation failed.</div>`)
+        });
+    }
+
+    function showUpdateById() {
+        $('#output-area').html(`
+            <h4>Update Account by ID</h4>
+            <input id="update-id" type="number" class="form-control mb-2" placeholder="ID" />
+            <input id="update-name" type="text" class="form-control mb-2" placeholder="Name" />
+            <input id="update-website" type="text" class="form-control mb-2" placeholder="Website" />
+            <input id="update-revenue" type="text" class="form-control mb-2" placeholder="Revenue" />
+            <input id="update-region" type="text" class="form-control mb-2" placeholder="Region" />
+            <button class="btn btn-info" onclick="updateById()">Update</button>
+            <div id="update-result" class="mt-3"></div>
+        `);
+    }
+
+    function updateById() {
+        const id = $('#update-id').val().trim();
+        const name = $('#update-name').val().trim();
+        const website = $('#update-website').val().trim();
+        const revenue = $('#update-revenue').val().trim();
+        const region = $('#update-region').val().trim();
+
+        // Simple validation
+        if (!id || !name || !website || !revenue || !region) {
+            $('#update-result').html('<div class="text-danger">Please fill in all fields before submitting.</div>');
+            return;
+        }
+
+    const payload = { name, website, revenue, region };
+
+        $.ajax({
+            url: `/accounts/${id}`,
+            method: 'PUT',
+            data: JSON.stringify(payload),
+            contentType: 'application/json',
+            success: res => {
+                $('#update-result').html(`<div class="text-success">Account updated successfully.</div>`);
+                fetchHealthScoreChartData();
+            },   
+            error: err => $('#update-result').html(`<div class="text-danger">Failed to update. Check if ID exists.</div>`)
+        });
+    }
+
+    function showDeleteById() {
+        $('#output-area').html(`
+            <h4>Delete Account by ID</h4>
+            <input id="delete-id" type="number" class="form-control mb-2" placeholder="Enter ID to delete" />
+            <button class="btn btn-danger" onclick="deleteById()">Delete</button>
+            <div id="delete-result" class="mt-3"></div>
+        `);
+    }
+
+    function deleteById() {
+        const id = $('#delete-id').val();
+        $.ajax({
+            url: `/accounts/${id}`,
+            method: 'DELETE',
+            success: res => {
+                $('#delete-result').html(`<div class="text-success">Account deleted.</div>`);
+                fetchHealthScoreChartData();
+            },
+            error: err => $('#delete-result').html(`<div class="text-danger">Delete failed. ID not found.</div>`)
+        });
+    }
+
+    // ###### CONTACT VIEWER FUNCTIONS #####
+
+
+    function viewAllContacts() {
+        $.get("/contacts", function(data) {
+            if (!Array.isArray(data)) return $('#output-area').html('<p>Error retrieving contacts.</p>');
+            let html = '<h4>All Contacts</h4><table class="table table-striped table-bordered"><thead><tr><th>ID</th><th>First Name</th><th>Last Name</th><th>Email</th><th>Phone</th><th>Health Score</th><th>Account ID</th></tr></thead><tbody>';
+            data.forEach(contact => {
+                html += `<tr>
+                    <td>${contact.id}</td>
+                    <td>${contact.first_name || ''}</td>
+                    <td>${contact.last_name || ''}</td>
+                    <td>${contact.email || ''}</td>
+                    <td>${contact.phone || ''}</td>
+                    <td>${contact.health_score || ''}</td>
+                    <td>${contact.account_id || ''}</td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            $('#output-area').html(html);
+        });
+    }
+
+    function showFindContactById() {
+        $('#output-area').html(`
+            <h4>Find Contact by ID</h4>
+            <input id="find-contact-id" type="number" class="form-control mb-2" placeholder="Enter Contact ID" />
+            <button class="btn btn-secondary" onclick="findContactById()">Find</button>
+            <div id="contact-find-result" class="mt-3"></div>
+        `);
+    }
+
+    function findContactById() {
+        const id = $('#find-contact-id').val();
+        if (!id) return alert('Please enter a Contact ID.');
+        $.get(`/contacts/${id}`, function(contact) {
+            const html = `<table class="table table-bordered"><tr><th>ID</th><th>First Name</th><th>Last Name</th><th>Email</th><th>Phone</th><th>Health Score</th><th>Account ID</th></tr>
+                          <tr>
+                            <td>${contact.id}</td>
+                            <td>${contact.first_name}</td>
+                            <td>${contact.last_name}</td>
+                            <td>${contact.email}</td>
+                            <td>${contact.phone || ''}</td>
+                            <td>${contact.health_score || ''}</td>
+                            <td>${contact.account_id}</td>
+                          </tr>
+                          </table>`;
+            $('#contact-find-result').html(html);
+        }).fail(() => $('#contact-find-result').html('<div class="text-danger">Contact not found.</div>'));
+    }
+
+    function showCreateContact() {
+        $('#output-area').html(`
+            <h4>Create Contact</h4>
+            <input id="create-contact-first-name" type="text" class="form-control mb-2" placeholder="First Name" />
+            <input id="create-contact-last-name" type="text" class="form-control mb-2" placeholder="Last Name" />
+            <input id="create-contact-email" type="email" class="form-control mb-2" placeholder="Email" />
+            <input id="create-contact-phone" type="phone" class="form-control mb-2" placeholder="Phone" />
+            <input id="create-contact-health_score" type="numeric" class="form-control mb-2" placeholder="Health Score" />
+            <input id="create-contact-account-id" type="number" class="form-control mb-2" placeholder="Account ID" />
+            <button class="btn btn-success" onclick="createContact()">Create</button>
+            <div id="create-contact-result" class="mt-3"></div>
+        `);
+    }
+
+    function createContact() {
+        // Get all input values and trim whitespace
+        const firstName = $('#create-contact-first-name').val().trim();
+        const lastName = $('#create-contact-last-name').val().trim();
+        const email = $('#create-contact-email').val().trim();
+        const phone = $('#create-contact-phone').val().trim();
+        const healthScore = $('#create-contact-health_score').val().trim();
+        const accountId = $('#create-contact-account-id').val().trim();
+
+        // Simple validation: check if any field is empty
+        if (!firstName || !lastName || !email || !phone || !healthScore || !accountId) {
+            $('#create-contact-result').html('<div class="text-danger">Please fill in all fields before submitting.</div>');
+            return; // Stop further execution
+        }
+
+        if (!isValidEmail(email)) {
+        $('#create-contact-result').html('<div class="text-danger">Please enter a valid email address.</div>');
+        return;
+        }
+
+        if (!isValidPhone(phone)) {
+            $('#create-contact-result').html('<div class="text-danger">Please enter a valid phone number.</div>');
+            return;
+        }
+
+        if (!isValidHealthScore(healthScore)) {
+            $('#create-contact-result').html('<div class="text-danger">Health Score must be between 0 and 100.</div>');
+            return;
+        }
+
+        if (isNaN(Number(accountId)) || Number(accountId) <= 0) {
+            $('#create-contact-result').html('<div class="text-danger">Account ID must be a positive number.</div>');
+            return;
+        }
+
+        // If all fields are valid, proceed to AJAX call
+        const payload = {
+            first_name: $('#create-contact-first-name').val(),
+            last_name: $('#create-contact-last-name').val(),
+            email: $('#create-contact-email').val(),
+            phone: $('#create-contact-phone').val(),
+            health_score: $('#create-contact-health_score').val(),
+            account_id: $('#create-contact-account-id').val()
+        };
+        $.ajax({
+            url: '/contacts',
+            method: 'POST',
+            data: JSON.stringify(payload),
+            contentType: 'application/json',
+            success: res => {
+                $('#create-contact-result').html(`<div class="text-success">Contact created. ID: ${res.id}</div>`);
+                fetchHealthScoreChartData();
+            },
+            error: err => $('#create-contact-result').html(`<div class="text-danger">Creation failed.</div>`)
+        });
+    }
+
+    function showCreateDummyContacts() {
+        $('#output-area').html(`
+            <h4>Create Dummy Contacts</h4>
+            <label>Number of dummy contacts to create (max 100):</label>
+            <input id="dummy-count" type="number" class="form-control mb-2" min="1" max="100" value="1" />
+            <button class="btn btn-warning" onclick="createDummyContacts()">Create</button>
+            <div id="dummy-result" class="mt-3"></div>
+        `);
+    }
+
+    function createDummyContacts() {
+        let count = parseInt($('#dummy-count').val());
+        if (isNaN(count) || count < 1 || count > 100) {
+            alert('Please enter a valid number between 1 and 100.');
+            return;
+        }
+        $.ajax({
+            url: `/contacts/dummy?count=${count}`,
+            method: 'POST',
+            success: res => {
+                $('#dummy-result').html(`<div class="text-success">${count} dummy contacts created.</div>`);
+                fetchHealthScoreChartData();
+            },
+            error: err => $('#dummy-result').html('<div class="text-danger">Failed to create dummy contacts.</div>')
+        });
+    }
+
+    function showUpdateContactById() {
+        $('#output-area').html(`
+            <h4>Update Contact by ID</h4>
+            <input id="update-contact-id" type="number" class="form-control mb-2" placeholder="ID" />
+            <input id="update-contact-first-name" type="text" class="form-control mb-2" placeholder="First Name" />
+            <input id="update-contact-last-name" type="text" class="form-control mb-2" placeholder="Last Name" />
+            <input id="update-contact-email" type="email" class="form-control mb-2" placeholder="Email" />
+            <input id="update-contact-phone" type="phone" class="form-control mb-2" placeholder="phone" />
+            <input id="update-contact-health_score" type="numeric" class="form-control mb-2" placeholder="Health Score" />
+            <input id="update-contact-account-id" type="number" class="form-control mb-2" placeholder="Account ID" />
+            <button class="btn btn-info" onclick="updateContactById()">Update</button>
+            <div id="update-contact-result" class="mt-3"></div>
+        `);
+    }
+
+    function updateContactById() {
+        const id = $('#update-contact-id').val().trim();
+        const firstName = $('#update-contact-first-name').val().trim();
+        const lastName = $('#update-contact-last-name').val().trim();
+        const email = $('#update-contact-email').val().trim();
+        const phone = $('#update-contact-phone').val().trim();
+        const healthScore = $('#update-contact-health_score').val().trim();
+        const accountId = $('#update-contact-account-id').val().trim();
+
+        // Simple field completeness check
+        if (!id || !firstName || !lastName || !email || !phone || !healthScore || !accountId) {
+            $('#update-contact-result').html('<div class="text-danger">Please fill in all fields before submitting.</div>');
+            return;
+        };
+        
+        $.ajax({
+            url: `/contacts/${id}`,
+            method: 'PUT',
+            data: JSON.stringify(payload),
+            contentType: 'application/json',
+            success: res => {
+                $('#update-contact-result').html(`<div class="text-success">Contact updated successfully.</div>`);
+                fetchHealthScoreChartData();
+            },
+            error: err => $('#update-contact-result').html(`<div class="text-danger">Failed to update. Check if ID exists.</div>`)
+        });
+    }
+
+    function showDeleteContactById() {
+        $('#output-area').html(`
+            <h4>Delete Contact by ID</h4>
+            <input id="delete-contact-id" type="number" class="form-control mb-2" placeholder="Enter ID to delete" />
+            <button class="btn btn-danger" onclick="deleteContactById()">Delete</button>
+            <div id="delete-contact-result" class="mt-3"></div>
+        `);
+    }
+
+    function deleteContactById() {
+        const id = $('#delete-contact-id').val();
+        $.ajax({
+            url: `/contacts/${id}`,
+            method: 'DELETE',
+            success: res => {
+                $('#delete-contact-result').html(`<div class="text-success">Contact deleted.</div>`);
+                fetchHealthScoreChartData();
+            },
+            error: err => $('#delete-contact-result').html(`<div class="text-danger">Delete failed. ID not found.</div>`)
+        });
+    }
+
+
+    // ##### REAL TIME ANALYTICS / INSIGHTS FUNCTIONS #####
+
+    let healthScoreChart = null;
+
+    function fetchHealthScoreChartData() {
+        $.get('/accounts/insights', function(data) {
+            const labels = data.map(row => row[0]);
+            const scores = data.map(row => Number(row[1]));
+
+            const ctx = document.getElementById('healthScoreChart').getContext('2d');
+
+             if (healthScoreChart) {
+                healthScoreChart.destroy();
+            }
+
+            healthScoreChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Avg Health Score',
+                        data: scores,
+                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        });
+    }
+
+    // Load chart on page load
+    $(document).ready(fetchHealthScoreChartData);
+
+    // Expose function globally so it can be called after CRUD operations
+    window.fetchHealthScoreChartData = fetchHealthScoreChartData;
+
+</script>
+</body>
+</html>

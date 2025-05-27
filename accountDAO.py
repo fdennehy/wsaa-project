@@ -111,10 +111,14 @@ class accountDAO:
     def deleteAccount(self, id):
         try:
             cursor = self.getcursor()
-            sql="delete from account where id = %s"
+            sql = "DELETE FROM account WHERE id = %s"
             cursor.execute(sql, (id,))
             self.connection.commit()
-            return{"status": "deleted", "id": id}
+            
+            if cursor.rowcount == 0:
+                return None  # No rows deleted — account not found
+            else:
+                return {"status": "deleted", "id": id}
         except mysql.connector.Error as err:
             print(f"DB Error in deleteAccount: {err}")
             return None
@@ -137,7 +141,7 @@ class accountDAO:
             self.closeAll()
 
     # Function to hydrate database with dummy data.
-    def dummyDataInsert(self):
+    def dummyAccountDataInsert(self):
         try:
             cursor = self.getcursor()
             sql = """
@@ -150,9 +154,30 @@ class accountDAO:
             """
             cursor.execute(sql)
             self.connection.commit()
-            return{"status": "dummy data inserted"}
+            return{"status": "dummy account data inserted"}
         except mysql.connector.Error as err:
-            print(f"DB Error in dummyDataInsert: {err}")
+            print(f"DB Error in dummyAccountDataInsert: {err}")
+            return None
+        finally:
+            self.closeAll()
+
+    # Function to retrieve average health scores per account
+    def avgAccountHealthScore(self):
+        try:
+            cursor = self.getcursor()
+            sql = """
+            SELECT a.name AS account_name, 
+            ROUND(AVG(c.health_score), 2) AS avg_health_score
+            FROM account a
+            JOIN contact c ON a.id = c.account_id
+            GROUP BY a.id
+            ORDER BY avg_health_score DESC
+            """
+            cursor.execute(sql)
+            results = cursor.fetchall()
+            return results
+        except mysql.connector.Error as err:
+            print(f"DB Error in avgAccountHealthScore: {err}")
             return None
         finally:
             self.closeAll()

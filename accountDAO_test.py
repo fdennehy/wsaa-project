@@ -1,6 +1,6 @@
-# Script to test the various functions in the DAO
+# Script to test the various functions in the accountDAO
 
-from account_DAO import accountDAO
+from accountDAO import accountDAO
 
 dao = accountDAO() # create an instance
 
@@ -52,5 +52,5 @@ print(dao.getAllAccounts())
 
 # Re-hydrate the database
 print("\n Inserting dummy account data: \n")
-dao.dummyDataInsert()
+dao.dummyAccountDataInsert()
 print(dao.getAllAccounts())

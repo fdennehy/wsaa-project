@@ -1,4 +1,4 @@
-# List of mySQL commands used for database
+# List of mySQL commands used for initial database
 
 # Create 'account' table
 CREATE TABLE account (
@@ -10,34 +10,35 @@ CREATE TABLE account (
 );
 
 # Populate with dummy data
-INSERT INTO account (account_name, website) VALUES
-('Acme Corporation', 'https://www.acme.com'),
-('Globex Industries', 'https://www.globex.com'),
-('Initech', 'https://www.initech.com'),
-('Stark Enterprises', 'https://www.starkenterprises.com'),
-('Wayne Enterprises', 'https://www.wayneenterprises.com');
-
+INSERT INTO account (name, website, revenue, region) VALUES 
+('Acme Corporation', 'https://www.acme.com', '1000', 'Asia'), 
+('Globex Industries', 'https://www.globex.com', '200', 'South America'), 
+('Initech', 'https://www.initech.com', '500', 'Europe'),
+('Stark Enterprises', 'https://www.starkenterprises.com', '750', 'North America'),
+('Wayne Enterprises', 'https://www.wayneenterprises.com', '750', 'Australia');
 
 # Create 'contacts' table
 
-CREATE TABLE contacts (
-    contact_id INT AUTO_INCREMENT PRIMARY KEY,
-    account_id INT,
-    first_name VARCHAR(100),
-    last_name VARCHAR(100),
-    email_address VARCHAR(255) UNIQUE,
-    FOREIGN KEY (account_id) REFERENCES accounts(account_id) ON DELETE CASCADE
+CREATE TABLE contact (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  first_name VARCHAR(100),
+  last_name VARCHAR(100),
+  email VARCHAR(150) UNIQUE,
+  phone VARCHAR(50),
+  health_score INT,
+  account_id INT,
+  FOREIGN KEY (account_id) REFERENCES account(id) ON DELETE CASCADE
 );
 
 # Populate with dummy data
 
-INSERT INTO contacts (account_id, first_name, last_name, email_address) VALUES
-(1, 'John', 'Doe', 'john.doe@acme.com'),
-(1, 'Jane', 'Smith', 'jane.smith@acme.com'),
-(2, 'Emily', 'Clark', 'emily.clark@globex.com'),
-(2, 'Michael', 'Brown', 'michael.brown@globex.com'),
-(3, 'Peter', 'Gibbons', 'peter.gibbons@initech.com'),
-(3, 'Samir', 'Nagheenanajar', 'samir.n@initech.com'),
-(4, 'Tony', 'Stark', 'tony.stark@starkenterprises.com'),
-(5, 'Bruce', 'Wayne', 'bruce.wayne@wayneenterprises.com'),
-(5, 'Lucius', 'Fox', 'lucius.fox@wayneenterprises.com');
+INSERT INTO contact (account_id, first_name, last_name, email, phone, health_score) VALUES
+(1, 'John', 'Doe', 'john.doe@acme.com', '555-1234', 85),
+(1, 'Jane', 'Smith', 'jane.smith@acme.com', '555-5678', 90),
+(2, 'Emily', 'Clark', 'emily.clark@globex.com', '555-2345', 70),
+(2, 'Michael', 'Brown', 'michael.brown@globex.com', '555-6789', 75),
+(3, 'Peter', 'Gibbons', 'peter.gibbons@initech.com', '555-3456', 60),
+(3, 'Samir', 'Nagheenanajar', 'samir.n@initech.com', '555-7890', 65),
+(4, 'Tony', 'Stark', 'tony.stark@starkenterprises.com', '555-1122', 95),
+(5, 'Bruce', 'Wayne', 'bruce.wayne@wayneenterprises.com', '555-3344', 92),
+(5, 'Lucius', 'Fox', 'lucius.fox@wayneenterprises.com', '555-5566', 88);

@@ -170,5 +170,8 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
+# Ruff stuff:
+.ruff_cache/
+
 # Config file for API keys / passwords / DB connection details
 config.py
