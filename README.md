@@ -10,7 +10,10 @@ This project is a lightweight web-based dashboard for managing Accounts and Cont
 - **MySQL** as the database
 - **HTML, Ajax, JavaScript, jQuery, Chart.js, and Bootstrap** on the frontend
 
-Key functionality includes CRUD operations on Accounts and Contacts, and real-time visualization of average contact health scores by account.
+Key functionality includes:
+- CRUD operations on Accounts and Contacts
+- Reading in data from an external source [Random User Generator](https://randomuser.me/) 
+- Real-time visualization of average contact health scores by account.
 
 The project is hosted and can be accessed on [Python Anywhere](https://fdennehy.pythonanywhere.com/)
 
@@ -96,5 +99,6 @@ python server.py
 
 ## Acknowledgements
 
-Special thanks to my lecturer on the Web Services and Applications module, Andrew Beatty, from whom I acquired the skills necessary to put this project together.
-ChatGPT was heavily used for puting together the dashboard.html (see ChatGPT_prompt.txt)
+- Special thanks to my lecturer on the Web Services and Applications module, Andrew Beatty, from whom I acquired the skills necessary to put this project together.
+- [ChatGPT](https://chatgpt.com/) was heavily used for puting together the dashboard.html (see ChatGPT_prompt.txt)
+- [Random User Generator API](https://randomuser.me/) is used to generate dummy contacts.
