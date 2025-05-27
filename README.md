@@ -23,8 +23,9 @@ The project is hosted and can be accessed on [Python Anywhere](https://fdennehy.
 
 Manage Accounts:  
 - Create, Read, Update, Delete  
-- Real-time validation  
+- Real-time validation (e.g. new contacts can only be created for a valid account)
 - Dummy Account generator (not exposed on the front end)
+- Wipe Accounts function (not exposed on the front end)
 
 Manage Contacts:  
 - Create, Read, Update, Delete  
